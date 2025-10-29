@@ -19,10 +19,10 @@ const db = new sqlite3.Database('/tmp/data.db', (err) => {
                 status TEXT
             )`, () => {
                 const initialUsers = [
-                    ['standard_user', 'secret_sauce', 'active'],
-                    ['locked_out_user', 'secret_sauce', 'locked'],
-                    ['problem_user', 'secret_sauce', 'active'],
-                    ['performance_glitch_user', 'secret_sauce', 'active']
+                    ['user', '00', 'active'],
+                    ['locked', '00', 'locked'],
+                    ['problem', '00', 'active'],
+                    ['glitch', '00', 'active']
                 ];
                 const stmt = db.prepare("INSERT OR IGNORE INTO users (username, password, status) VALUES (?, ?, ?)");
                 initialUsers.forEach(user => stmt.run(user));
@@ -37,12 +37,10 @@ const db = new sqlite3.Database('/tmp/data.db', (err) => {
                 desc TEXT
             )`, () => {
                 const INITIAL_PRODUCTS = [
-                    { name: "Sauce Labs Backpack", price: 29.99, desc: "Tas yang bagus dan serbaguna." },
-                    { name: "Sauce Labs Bike Light", price: 9.99, desc: "Lampu sepeda yang sangat terang." },
-                    { name: "Sauce Labs Bolt T-Shirt", price: 15.99, desc: "Kaos katun lembut, desain logo." },
-                    { name: "Sauce Labs Fleece Jacket", price: 49.99, desc: "Jaket fleece hangat untuk segala cuaca." },
-                    { name: "Sauce Labs Onesie", price: 7.99, desc: "Pakaian bayi lucu dan nyaman." },
-                    { name: "Sauce Labs T-Shirt (Red)", price: 15.99, desc: "Kaos katun lembut, warna merah menyala." }
+                    { name: "Apel Hijau Kesakitan", price: 29.99, desc: "Makanan sehat tinggi serat" },
+                    { name: "Bunga Mekar Pontianak", price: 9.99, desc: "Hiasan Bunga" },
+                    { name: "Puding Cokelat Pak Hambali", price: 15.99, desc: "Hidangan penutup istimewa" },
+                    { name: "Action Figur Himmel Silver", price: 49.99, desc: "Action figure realistis" },
                 ];
                 const stmt = db.prepare("INSERT OR IGNORE INTO products (name, price, desc) VALUES (?, ?, ?)");
                 INITIAL_PRODUCTS.forEach(p => stmt.run(p.name, p.price, p.desc));
