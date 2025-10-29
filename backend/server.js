@@ -3,10 +3,6 @@ const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path'); 
 const app = express();
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Server berjalan di port ${port}`);
-});
 
 const db = new sqlite3.Database('/tmp/data.db', (err) => {
     if (err) {
@@ -190,7 +186,8 @@ app.delete('/api/cart', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server Node.js berjalan di port ${PORT}`);
-    console.log(`Aplikasi dapat diakses secara lokal di: http://localhost:${PORT}`);
+const port = process.env.PORT || 3000;
+
+app.listen(port, () => {
+    console.log(`Server berjalan di port ${port}`);
 });
