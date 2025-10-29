@@ -1,15 +1,17 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
-const path = require('path'); 
+const path = require('path');
 const app = express();
 
+// Konfigurasi Database (Perbaikan: Menggunakan /tmp/data.db untuk lingkungan cloud)
 const db = new sqlite3.Database('/tmp/data.db', (err) => {
     if (err) {
         console.error(err.message);
     } else {
         console.log('Terkoneksi ke database SQLite.');
         db.serialize(() => {
+            // 1. Buat Tabel Users
             db.run(`CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -27,6 +29,7 @@ const db = new sqlite3.Database('/tmp/data.db', (err) => {
                 stmt.finalize();
             });
 
+            // 2. Buat Tabel Products
             db.run(`CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
@@ -46,35 +49,23 @@ const db = new sqlite3.Database('/tmp/data.db', (err) => {
                 stmt.finalize();
             });
 
+            // 3. Buat Tabel Carts (Perbaikan Syntax: Tanpa kurung penutup berlebihan)
             db.run(`CREATE TABLE IF NOT EXISTS carts (
                 user_id INTEGER,
                 product_id INTEGER,
                 qty INTEGER,
                 FOREIGN KEY(user_id) REFERENCES users(id)
-            )`);
-        });
+            )`); // <-- BARIS INI KINI BENAR
+        }); // Menutup db.serialize
     }
-});
+}); // Menutup callback db.Database
 
-app.use(cors()); 
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
-app.get('*', (req, res, next) => {
-    if (req.originalUrl.startsWith('/api')) {
-        return next(); 
-    }
-    
-    const filePath = path.join(__dirname, '..', 'frontend', req.originalUrl);
-    res.sendFile(filePath, (err) => {
-        if (err && req.originalUrl !== '/') {
-            res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
-        } else if (req.originalUrl === '/') {
-            res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
-        }
-    });
-});
-
+// Routing API dan Frontend
 const getUserIdByUsername = (username) => {
     return new Promise((resolve, reject) => {
         db.get("SELECT id FROM users WHERE username = ?", [username], (err, row) => {
@@ -186,6 +177,7 @@ app.delete('/api/cart', async (req, res) => {
     }
 });
 
+// Penutup: Memulai Server (Perbaikan: Port Dinamis dan di akhir file)
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
