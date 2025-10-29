@@ -1,15 +1,12 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
-const path = require('path'); // Diperlukan untuk melayani file statis
+const path = require('path'); 
 const app = express();
 
-// Gunakan PORT dinamis untuk hosting (wajib untuk Render/Railway), default ke 3000
-const PORT = process.env.PORT || 3000;
-
-// =======================================================
-// --- KONFIGURASI DATABASE DAN DATA AWAL ---
-// =======================================================
+app.listen(port, () => {
+    console.log(`Server berjalan di port ${port}`);
+});
 
 const db = new sqlite3.Database('./data.db', (err) => {
     if (err) {
@@ -17,7 +14,6 @@ const db = new sqlite3.Database('./data.db', (err) => {
     } else {
         console.log('Terkoneksi ke database SQLite.');
         db.serialize(() => {
-            // Tabel Pengguna (users)
             db.run(`CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -35,7 +31,6 @@ const db = new sqlite3.Database('./data.db', (err) => {
                 stmt.finalize();
             });
 
-            // Tabel Produk (products)
             db.run(`CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
@@ -55,7 +50,6 @@ const db = new sqlite3.Database('./data.db', (err) => {
                 stmt.finalize();
             });
 
-            // Tabel Keranjang (carts)
             db.run(`CREATE TABLE IF NOT EXISTS carts (
                 user_id INTEGER,
                 product_id INTEGER,
@@ -66,33 +60,18 @@ const db = new sqlite3.Database('./data.db', (err) => {
     }
 });
 
-// =======================================================
-// --- MIDDLEWARE DAN PENYAJIAN FRONTEND ---
-// =======================================================
-
-app.use(cors()); // Diperlukan untuk pengembangan lokal
+app.use(cors()); 
 app.use(express.json());
-
-// *** KODE TAMBAHAN UNTUK PENYAJIAN FILE FRONTEND ***
-
-// 1. Tentukan folder 'frontend' sebagai folder statis yang akan disajikan.
-// (__dirname adalah /backend, jadi kita harus naik satu tingkat '..')
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
-// 2. Fallback untuk routing frontend
-// Jika ada request yang BUKAN menuju '/api', layani file statis (misalnya /inventory.html)
-// Jika URL tidak spesifik ke file, fallback ke index.html.
 app.get('*', (req, res, next) => {
-    // Pastikan ini TIDAK mencegat rute API
     if (req.originalUrl.startsWith('/api')) {
         return next(); 
     }
     
-    // Coba layani file yang diminta, jika gagal, kirim index.html (opsional)
     const filePath = path.join(__dirname, '..', 'frontend', req.originalUrl);
     res.sendFile(filePath, (err) => {
         if (err && req.originalUrl !== '/') {
-            // Jika file spesifik tidak ditemukan, coba kirim index.html
             res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
         } else if (req.originalUrl === '/') {
             res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
@@ -100,11 +79,6 @@ app.get('*', (req, res, next) => {
     });
 });
 
-// =======================================================
-// --- RUTE API (APPLICATION LOGIC) ---
-// =======================================================
-
-// --- UTILITY: Mendapatkan User ID ---
 const getUserIdByUsername = (username) => {
     return new Promise((resolve, reject) => {
         db.get("SELECT id FROM users WHERE username = ?", [username], (err, row) => {
@@ -114,11 +88,9 @@ const getUserIdByUsername = (username) => {
     });
 };
 
-// --- API LOGIN ---
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
-    // Tambahkan delay untuk performance_glitch_user
     if (username === 'performance_glitch_user') {
         console.log('Simulating performance delay...');
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -139,7 +111,6 @@ app.post('/api/login', async (req, res) => {
     });
 });
 
-// --- API GET PRODUCTS ---
 app.get('/api/products', (req, res) => {
     db.all("SELECT * FROM products", (err, rows) => {
         if (err) {
@@ -149,7 +120,6 @@ app.get('/api/products', (req, res) => {
     });
 });
 
-// --- API GET CART ---
 app.get('/api/cart', async (req, res) => {
     const username = req.query.user;
     if (!username) return res.status(400).json({ message: "Username required." });
@@ -167,7 +137,6 @@ app.get('/api/cart', async (req, res) => {
     }
 });
 
-// --- API SAVE CART (POST) ---
 app.post('/api/cart', async (req, res) => {
     const { user: username, cart } = req.body;
     if (!username) return res.status(400).json({ message: "Username required." });
@@ -176,16 +145,13 @@ app.post('/api/cart', async (req, res) => {
         const user_id = await getUserIdByUsername(username);
         if (!user_id) return res.status(404).json({ message: "User not found." });
 
-        // Mulai transaksi untuk membersihkan dan mengisi ulang keranjang
         db.serialize(() => {
-            // 1. Bersihkan keranjang lama pengguna
             db.run("DELETE FROM carts WHERE user_id = ?", [user_id], (err) => {
                 if (err) {
                     console.error("Error deleting old cart:", err);
                     return res.status(500).json({ message: "Error updating cart." });
                 }
 
-                // 2. Isi keranjang dengan data baru
                 if (cart && cart.length > 0) {
                     const stmt = db.prepare("INSERT INTO carts (user_id, product_id, qty) VALUES (?, ?, ?)");
                     cart.forEach(item => stmt.run(user_id, item.id, item.qty));
@@ -207,7 +173,6 @@ app.post('/api/cart', async (req, res) => {
     }
 });
 
-// --- API CLEAR CART (DELETE) ---
 app.delete('/api/cart', async (req, res) => {
     const username = req.query.user;
     if (!username) return res.status(400).json({ message: "Username required." });
@@ -225,9 +190,6 @@ app.delete('/api/cart', async (req, res) => {
     }
 });
 
-// =======================================================
-// --- START SERVER ---
-// =======================================================
 app.listen(PORT, () => {
     console.log(`Server Node.js berjalan di port ${PORT}`);
     console.log(`Aplikasi dapat diakses secara lokal di: http://localhost:${PORT}`);
