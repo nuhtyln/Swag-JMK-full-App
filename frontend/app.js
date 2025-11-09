@@ -1,7 +1,6 @@
 const API_BASE_URL = '';
 let allProducts = [];
 
-
 const getCartFromApi = async (username) => {
     if (!username) return [];
     try {
@@ -30,11 +29,13 @@ const saveCartToApi = async (cart, username) => {
     }
 };
 
-const getProductsFromApi = async () => {
+const getProductsFromApi = async (username) => {
     if (allProducts.length > 0) return allProducts; 
 
+    const url = `${API_BASE_URL}/api/products?user=${username}`;
+    
     try {
-        const response = await fetch(`${API_BASE_URL}/api/products`);
+        const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch products');
         allProducts = await response.json();
         return allProducts;
@@ -45,8 +46,8 @@ const getProductsFromApi = async () => {
 };
 
 const clearCartApi = async (username) => {
-     if (!username) return;
-     try {
+      if (!username) return;
+      try {
         await fetch(`${API_BASE_URL}/api/cart?user=${username}`, { method: 'DELETE' });
     } catch (error) {
         console.error("Gagal mengosongkan keranjang:", error);
@@ -183,8 +184,10 @@ const setupInventoryPage = async () => {
         return;
     }
 
-    const PRODUCTS = await getProductsFromApi();
-    const cart = await getCartFromApi(localStorage.getItem('currentUser')); 
+    const currentUser = localStorage.getItem('currentUser');
+
+    const PRODUCTS = await getProductsFromApi(currentUser); 
+    const cart = await getCartFromApi(currentUser); 
 
     if (PRODUCTS.length === 0) {
         inventoryContainer.innerHTML = '<p>Gagal memuat produk dari server. Pastikan server backend berjalan.</p>';
@@ -192,14 +195,13 @@ const setupInventoryPage = async () => {
     }
     
     let allProductsHTML = '';
-    const currentUser = localStorage.getItem('currentUser');
-            
+    
     PRODUCTS.forEach(product => {
         const isInCart = cart.some(item => item.id === product.id); 
-        const imagePath = (currentUser === 'problem_user') ? 
-            './img/broken.jpg' : 
-            `./img/product-${product.id}.jpg`;
-            
+        
+        const defaultImagePath = `./img/product-${product.id}.jpg`;
+        const imagePath = product.img || defaultImagePath; 
+        
         const buttonText = isInCart ? 'Remove' : 'Add to Cart';
         const buttonClass = isInCart ? 'btn-remove' : 'btn-add';
 
@@ -243,9 +245,10 @@ const setupCartPage = async () => {
         window.location.href = 'index.html';
         return;
     }
-
-    const PRODUCTS = await getProductsFromApi();
-    const cart = await getCartFromApi(localStorage.getItem('currentUser'));
+    
+    const currentUser = localStorage.getItem('currentUser');
+    const PRODUCTS = await getProductsFromApi(currentUser);
+    const cart = await getCartFromApi(currentUser);
     
     let cartHTML = '';
     let subtotal = 0;
@@ -263,10 +266,8 @@ const setupCartPage = async () => {
                 const totalPrice = product.price * cartItem.qty;
                 subtotal += totalPrice;
                 
-                const currentUser = localStorage.getItem('currentUser');
-                const imagePath = (currentUser === 'problem_user') ? 
-                    './img/broken.jpg' : 
-                    `./img/product-${product.id}.jpg`;
+                const defaultImagePath = `./img/product-${product.id}.jpg`;
+                const imagePath = product.img || defaultImagePath; 
                     
                 cartHTML += `
                     <div class="cart-item-row item-details" id="cart-item-${product.id}">
@@ -371,9 +372,11 @@ const setupCheckoutCompletePage = async () => {
     const backHomeBtn = document.getElementById('back-to-products-btn');
     if (!backHomeBtn) return;
     const currentUser = localStorage.getItem('currentUser');
+    
     await clearCartApi(currentUser); 
     localStorage.removeItem('checkoutInfo');
     await updateCartCount(); 
+    
     backHomeBtn.addEventListener('click', () => {
         window.location.href = 'inventory.html';
     });
@@ -399,7 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupGlobalListeners();
     
     if (!window.location.pathname.includes('index.html')) {
-         await updateCartCount();
+          await updateCartCount();
     }
     
     const path = window.location.pathname;
