@@ -10,6 +10,7 @@ const db = new sqlite3.Database('/tmp/data.db', (err) => {
     } else {
         console.log('Terkoneksi ke database SQLite.');
         db.serialize(() => {
+            // ... (Kode Inisialisasi Tabel dan User Tetap Sama)
             db.run(`CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -70,7 +71,7 @@ const getUserIdByUsername = (username) => {
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
-    if (username === 'performance_glitch_user') {
+    if (username === 'glitch') {
         console.log('Simulating performance delay...');
         await new Promise(resolve => setTimeout(resolve, 3000));
     }
@@ -91,10 +92,22 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.get('/api/products', (req, res) => {
+    const username = req.query.user; 
+    
     db.all("SELECT * FROM products", (err, rows) => {
         if (err) {
             return res.status(500).json({ message: "Error retrieving products." });
         }
+        
+        if (username === 'problem') {
+            const modifiedRows = rows.map(product => ({
+                ...product,
+                img: 'broken.jpg', 
+                desc: 'ERROR: GAMBAR RUSAK (Simulasi P-202)' 
+            }));
+            return res.json(modifiedRows);
+        }
+        
         res.json(rows);
     });
 });
