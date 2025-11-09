@@ -10,7 +10,6 @@ const db = new sqlite3.Database('/tmp/data.db', (err) => {
     } else {
         console.log('Terkoneksi ke database SQLite.');
         db.serialize(() => {
-            // ... (Kode Inisialisasi Tabel dan User Tetap Sama)
             db.run(`CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -187,3 +186,4 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di port ${port}`);
 });
+
